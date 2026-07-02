@@ -108,19 +108,64 @@ public class Professor extends User {
         }
     }
 
+    private Student findStudent(int studentId) {
+        if (admin == null) return null;
+        for (Student s : admin.getStudents()) {
+            if (s.getId() == studentId) return s;
+        }
+        return null;
+    }
+
+    // A professor may only act on courses the student has actually registered
+    // for or already completed.
+    private boolean studentHasCourse(Student s, String courseCode) {
+        for (Course c : s.getRegisteredCourses()) {
+            if (c.getCourseCode().equalsIgnoreCase(courseCode)) return true;
+        }
+        for (Course c : s.getCompletedCourses()) {
+            if (c.getCourseCode().equalsIgnoreCase(courseCode)) return true;
+        }
+        return false;
+    }
+
     public void markCourseCompleted(int studentId, String courseCode) {
-        List<Student> studentL = admin.getStudents();
-        for (int i = 0; i < studentL.size(); i++) {
-            if (studentId == studentL.get(i).getId()) {
-                studentCourseCompletion.computeIfAbsent(studentId, k -> new ArrayList<>()).add(courseCode);
-                System.out.println("Course " + courseCode + " marked as completed for student ID " + studentId);
-                return;
+        Student s = findStudent(studentId);
+        if (s == null) {
+            System.out.println("Invalid student ID. Please try again.");
+            return;
+        }
+
+        // Only a course the student is registered for can be completed; doing so
+        // moves it from their registered list onto their transcript.
+        Course moved = null;
+        for (Course course : s.getRegisteredCourses()) {
+            if (course.getCourseCode().equalsIgnoreCase(courseCode)) {
+                moved = course;
+                break;
             }
         }
-        System.out.println("Invalid student ID. Please try again.");
+        if (moved == null) {
+            System.out.println("Student ID " + studentId + " is not registered for course " + courseCode + ".");
+            return;
+        }
+
+        s.getRegisteredCourses().remove(moved);
+        s.getCompletedCourses().add(moved);
+        studentCourseCompletion.computeIfAbsent(studentId, k -> new ArrayList<>()).add(courseCode);
+        System.out.println("Course " + courseCode + " marked as completed for student ID " + studentId);
     }
 
     public void setGrade(int studentId, String courseCode, String grade) {
+        Student s = findStudent(studentId);
+        if (s == null) {
+            System.out.println("Invalid student ID. Please try again.");
+            return;
+        }
+        if (!studentHasCourse(s, courseCode)) {
+            System.out.println("Student ID " + studentId + " has not registered for course " + courseCode
+                    + ". You can only grade a student's own courses.");
+            return;
+        }
         studentGrades.computeIfAbsent(studentId, k -> new HashMap<>()).put(courseCode, grade);
         System.out.println("Grade " + grade + " set for student ID " + studentId + " in course " + courseCode);
     }

@@ -13,10 +13,10 @@ public class Main {
         Student student = new Student("student@example.com", "studentpass", 1, 1, 0, 0, 0, sharedFeedbackSystem, null, null);
         TeachingAssistant ta = new TeachingAssistant("ta@example.com", "tapass", 2, 1, 0, 0, 0, sharedFeedbackSystem, professor);
 
-        Course defaultCourse1 = new Course("CS101", "Introduction to Computer Science", "John Doe", 3, "None", "MWF 10:00-11:00", 1, 1);
-        Course defaultCourse2 = new Course("CS202", "Data Structures", "Jane Smith", 4, "CS101", "TTH 2:00-3:30", 2, 1);
-        Course defaultCourse3 = new Course("CS203", "Operating Systems", "Bob Johnson", 3, "CS101", "TTH 4:00-5:30", 3, 1);
-        Course defaultCourse4 = new Course("CS204", "Artificial Intelligence", "Alice Lee", 3, "CS101", "TTH 6:00-7:30", 4, 1);
+        Course defaultCourse1 = new Course("CS101", "Introduction to Computer Science", "John Doe", 3, "None", "MWF 10:00-11:00", 1, 30);
+        Course defaultCourse2 = new Course("CS202", "Data Structures", "Jane Smith", 4, "CS101", "TTH 2:00-3:30", 2, 30);
+        Course defaultCourse3 = new Course("CS203", "Operating Systems", "Bob Johnson", 3, "CS101", "TTH 4:00-5:30", 3, 30);
+        Course defaultCourse4 = new Course("CS204", "Artificial Intelligence", "Alice Lee", 3, "CS101", "TTH 6:00-7:30", 4, 30);
 
         admin.addCourse(defaultCourse1);
         admin.addCourse(defaultCourse2);
@@ -26,6 +26,12 @@ public class Main {
         professor.addCourse(defaultCourse2);
         professor.addCourse(defaultCourse3);
         professor.addCourse(defaultCourse4);
+
+        // Register the seeded learners with the admin so they can be found at
+        // login and by markCourseCompleted (previously the admin roster was empty,
+        // which made student login always fail with "Invalid student ID").
+        admin.addStudent(student);
+        admin.addStudent(ta);
 
         Scanner sc = new Scanner(System.in);
         boolean running = true;
@@ -46,8 +52,9 @@ public class Main {
                     try {
                         if (loginUser(admin, sc)) {
                             adminMenu(admin, sc);
+                        } else {
+                            throw new InvalidLoginException("Invalid email or password");
                         }
-                        throw new InvalidLoginException("Invalid email or password");
                     } catch (InvalidLoginException e) {
                         System.out.println(e.getMessage());
                     }
@@ -56,8 +63,9 @@ public class Main {
                     try {
                         if (loginUser(professor, sc)) {
                             professorMenu(professor, sc);
+                        } else {
+                            throw new InvalidLoginException("Invalid email or password");
                         }
-                        throw new InvalidLoginException("Invalid email or password");
                     } catch (InvalidLoginException e) {
                         System.out.println(e.getMessage());
                     }
@@ -72,8 +80,9 @@ public class Main {
                         try {
                             if (loginUser(studentFound, sc)) {
                                 studentMenu(studentFound, admin, professor, sc);
+                            } else {
+                                throw new InvalidLoginException("Invalid email or password");
                             }
-                            throw new InvalidLoginException("Invalid email or password");
                         } catch (InvalidLoginException e) {
                             System.out.println(e.getMessage());
                         }
@@ -85,8 +94,9 @@ public class Main {
                     try {
                         if (loginUser(ta, sc)) {
                             taMenu(ta, professor, sc);
+                        } else {
+                            throw new InvalidLoginException("Invalid email or password");
                         }
-                        throw new InvalidLoginException("Invalid email or password");
                     } catch (InvalidLoginException e) {
                         System.out.println(e.getMessage());
                     }
@@ -535,7 +545,6 @@ public class Main {
         String courseCode = sc.nextLine();
         System.out.println("Enter grade:");
         String grade = sc.nextLine();
-        sc.nextLine(); 
         professor.setGrade(studentId, courseCode, grade);
     }
 
@@ -657,7 +666,9 @@ public class Main {
         String code = sc.nextLine();
         
         
-        LocalDate dropDeadline = LocalDate.of(2024, 9, 30);
+        // Tie the drop deadline to the active term instead of a hardcoded past
+        // date, otherwise every drop fails once that date is behind us.
+        LocalDate dropDeadline = LocalDate.now().plusMonths(3);
         
         
         student.dropCourse(code,dropDeadline );

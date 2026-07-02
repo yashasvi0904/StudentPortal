@@ -28,8 +28,8 @@ public class Student extends User {
             FeedbackSystem feedbackSystem, Professor professor, Admin admin) {
 
         super(email, password);
+        this.id = Id;
         this.studentId = Id;
-        this.studentId = studentId;
         this.currSemester = currSemester;
         this.cgpa = cgpa;
         this.gpa = gpa;
@@ -87,10 +87,8 @@ public class Student extends User {
     }
 
     public void viewGrades(Professor professor) {
-        System.out.println("Enter student ID:");
-        int id = sc.nextInt();
-        sc.nextLine();
-        professor.viewGrades(id);
+        // Use the logged-in student's own ID instead of prompting for it again.
+        professor.viewGrades(this.getId());
     }
 
     public void submitFeedback() {
@@ -117,17 +115,6 @@ public class Student extends User {
     }
 
     public void viewAvailableCourses(List<Course> availableCourses) {
-        System.out.println("Enter student ID:");
-        int inputId = sc.nextInt();
-        sc.nextLine(); 
-
-        for (Student student : students) {
-            if (student.getId() == inputId) {
-                this.studentId = inputId;
-                break;
-            }
-        }
-
         if (availableCourses.isEmpty()) {
             System.out.println("No available courses to display for student ID: " + studentId);
         } else {
@@ -141,84 +128,76 @@ public class Student extends User {
 
  
     public void registerCourse(Course course) {
-    try {
-        System.out.println("Enter student ID:");
-        int inputId = sc.nextInt();
-        sc.nextLine(); 
+        try {
+            int inputId = this.getId();
 
-       
-        Student matchedStudent = null;
-        for (Student student : students) {
-            if (student.getId() == inputId) {
-                matchedStudent = student;
-                break;
+            // Prevent registering for the same course twice.
+            for (Course registered : registeredCourses) {
+                if (registered.getCourseCode().equals(course.getCourseCode())) {
+                    System.out.println("You are already registered for " + course.getTitle() + ".");
+                    return;
+                }
             }
-        }
-        System.out.println("Enter current semester: ");
-        int currSemesterInput = sc.nextInt();
-        sc.nextLine(); 
 
-      
-        if (course.getSemester() == currSemesterInput) {
-           
+            // A course unlocks only once its prerequisite has been completed.
+            if (!prerequisiteMet(course)) {
+                throw new IllegalArgumentException("You must complete the prerequisite ("
+                        + course.getPrerequisites() + ") before registering for " + course.getTitle() + ".");
+            }
+
             if (course.enrollStudent(inputId)) {
-                registeredCourses.add(course);  
+                registeredCourses.add(course);
+                totalCredits += course.getCredits();
                 System.out.println("Registered for " + course.getTitle() + " for student ID: " + inputId);
             } else {
                 System.out.println("Could not enroll.");
             }
-        } else {
-            throw new IllegalArgumentException("You can only register for courses in your current semester.");
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        } catch (Exception e) {
+            System.out.println("An unexpected error occurred: " + e.getMessage());
         }
-    } catch (InputMismatchException e) {
-        System.out.println("Invalid input. Please enter a valid student ID and semester.");
-        sc.nextLine(); 
-    } catch (IllegalArgumentException e) {
-        System.out.println(e.getMessage()); 
-    } catch (Exception e) {
-        System.out.println("An unexpected error occurred: " + e.getMessage());
     }
-}
     public boolean prerequisiteMet(Course course) {
-       
+        String pre = course.getPrerequisites();
+        if (pre == null || pre.trim().isEmpty() || pre.equalsIgnoreCase("None")) {
+            return true;
+        }
+        // Support one or more comma/semicolon-separated prerequisite codes.
+        for (String req : pre.split("[,;]+")) {
+            String code = req.trim();
+            if (code.isEmpty()) continue;
+            boolean have = false;
+            for (Course done : completedCourses) {
+                if (done.getCourseCode().equalsIgnoreCase(code)) {
+                    have = true;
+                    break;
+                }
+            }
+            if (!have) return false;
+        }
         return true;
     }
 
     public void viewGrades() {
-        System.out.println("Enter student ID:");
-        int inputId = sc.nextInt();
-        sc.nextLine(); 
+        int inputId = this.getId();
 
-        for (Student student : students) {   
-            if (student.getId() == inputId) {
-                this.studentId = inputId;
-                break;
-            }
-        }
-    
-
-        if (completedCourses.isEmpty()) {
+        // Grades are recorded by the professor, so route through them rather than
+        // fabricating an "A" for every completed course.
+        if (professor != null) {
+            professor.viewGrades(inputId);
+        } else if (completedCourses.isEmpty()) {
             System.out.println("No courses completed yet for student ID: " + inputId);
         } else {
-            System.out.println("Grades for Completed Courses (Student ID: " + inputId + "):");
+            System.out.println("Completed courses (grades pending from professor) for student ID: " + inputId + ":");
             for (Course course : completedCourses) {
-                System.out.println(course.getTitle() + " - Grade: A");
+                System.out.println(course.getTitle());
             }
         }
     }
 
     public void viewSchedule() {
-        System.out.println("Enter student ID:");
-        int inputId = sc.nextInt();
-        sc.nextLine(); 
-
-        for (Student student : students) {
-            if (student.getId() == inputId) {
-                this.studentId = inputId;
-                break;
-            }
-        }
-       
+        int inputId = this.getId();
 
         if (registeredCourses.isEmpty()) {
             System.out.println("No courses registered for the current semester for student ID: " + inputId);
@@ -233,34 +212,12 @@ public class Student extends User {
     }
 
     public void trackProgress(Professor professor) {
-        System.out.println("Enter student ID:");
-        int inputId = sc.nextInt();
-        sc.nextLine(); 
-
-        for (Student student : students) {
-            if (student.getId() == inputId) {
-                this.studentId = inputId;
-                break;
-            }
-        }
-      
-        professor.trackProgress(this.studentId);
+        professor.trackProgress(this.getId());
     }
     public void dropCourse(String courseCode, LocalDate dropDeadline) {
         try {
-            System.out.println("Enter student ID:");
-            int inputId = sc.nextInt();
-            sc.nextLine(); 
-    
-            
-            Student matchedStudent = null;
-            for (Student student : students) {
-                if (student.getId() == inputId) {
-                    matchedStudent = student;
-                    break;
-                }
-            }
-            
+            int inputId = this.getId();
+
             LocalDate currentDate = LocalDate.now();
             if (currentDate.isAfter(dropDeadline)) {
                 throw new DropDeadlinePassedException("The drop deadline has passed. You cannot drop the course.");
