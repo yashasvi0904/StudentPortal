@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Student Portal - course registration, grades, complaints and feedback for admins, professors, students and TAs.">
+<title>Student Portal</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E%F0%9F%8E%93%3C/text%3E%3C/svg%3E">
+<style>html,body{margin:0}</style>
+</head>
+<body>
+<style>
+  :root{
+    --ink:#1a2233; --ink-2:#243049; --ground:#f4f6f9; --panel:#ffffff;
+    --line:#e2e7ee; --line-2:#eef1f5; --muted:#6b7688; --text:#243041;
+    --accent:#3556a3; --accent-soft:#eaf0fb;
+    --admin:#b45309; --prof:#3556a3; --student:#0d7d74; --ta:#7c3aed;
+    --ok:#15803d; --ok-soft:#e7f4ec; --pend:#b45309; --pend-soft:#fbf0e2;
+    --danger:#be123c; --danger-soft:#fce8ed;
+    --mono:ui-monospace,"SFMono-Regular","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --shadow:0 1px 2px rgba(26,34,51,.06),0 8px 24px -12px rgba(26,34,51,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--ground);color:var(--text);font-family:var(--sans);
+    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:var(--serif);color:var(--ink);margin:0;text-wrap:balance;font-weight:600}
+  a{color:var(--accent)}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  button{font-family:inherit;font-size:14px;cursor:pointer;border-radius:8px;
+    border:1px solid var(--line);background:var(--panel);color:var(--text);
+    padding:8px 14px;transition:background .12s,border-color .12s,transform .04s}
+  button:hover{background:var(--line-2)}
+  button:active{transform:translateY(1px)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{background:#2c4a8c}
+  button.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 8px}
+  button.ghost:hover{background:var(--line-2);color:var(--text)}
+  button.danger{color:var(--danger);border-color:var(--danger-soft)}
+  button.danger:hover{background:var(--danger-soft)}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  input,select{font-family:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:8px;background:var(--panel);color:var(--text);width:100%}
+  label.field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;
+    letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+  label.field input,label.field select{text-transform:none;font-weight:400;letter-spacing:0}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+  /* ---------- LOGIN ---------- */
+  #auth{min-height:100vh;display:grid;place-items:center;padding:28px;
+    background:radial-gradient(1200px 700px at 20% -10%,#25324c 0%,var(--ink) 45%,#141b28 100%)}
+  .auth-card{width:100%;max-width:940px;background:var(--panel);border-radius:16px;
+    box-shadow:0 30px 70px -30px rgba(0,0,0,.55);overflow:hidden;
+    display:grid;grid-template-columns:1.1fr 1fr}
+  .auth-brand{background:var(--ink);color:#dfe6f2;padding:40px 38px;display:flex;flex-direction:column;gap:18px}
+  .crest{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;
+    background:linear-gradient(150deg,#4d6bb5,#2c3f6e);font-family:var(--serif);font-weight:700;color:#fff;font-size:22px}
+  .auth-brand h1{color:#fff;font-size:30px;line-height:1.1}
+  .auth-brand p{color:#9fb0cc;margin:0;font-size:14px;max-width:34ch}
+  .creds{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+  .creds .eyebrow{color:#7d8fb0}
+  .cred{display:flex;justify-content:space-between;gap:10px;align-items:center;
+    background:#212c43;border:1px solid #2c3a58;border-radius:9px;padding:8px 11px;font-size:12.5px}
+  .cred b{color:#cdd8ec;font-weight:600}
+  .cred .mono{color:#8fa6d0}
+  .cred button{background:#2c3a58;border-color:#3a4a6e;color:#cdd8ec;padding:4px 9px;font-size:12px}
+  .cred button:hover{background:#374765}
+  .auth-form{padding:40px 38px;display:flex;flex-direction:column;justify-content:center;gap:16px}
+  .auth-form h2{font-size:20px}
+  .auth-err{color:var(--danger);font-size:13px;min-height:18px;font-weight:500}
+
+  /* ---------- APP SHELL ---------- */
+  #app{display:none;min-height:100vh;grid-template-columns:262px 1fr}
+  .sidebar{background:var(--ink);color:#c7d1e2;display:flex;flex-direction:column;
+    position:sticky;top:0;height:100vh}
+  .side-head{padding:20px 20px 16px;border-bottom:1px solid #2a3852;display:flex;gap:12px;align-items:center}
+  .side-head .crest{width:38px;height:38px;font-size:19px}
+  .side-head .t{font-family:var(--serif);color:#fff;font-weight:600;line-height:1.15}
+  .side-head .s{font-size:11px;color:#8395b5;letter-spacing:.12em;text-transform:uppercase}
+  .who{padding:16px 20px;border-bottom:1px solid #2a3852;display:flex;flex-direction:column;gap:6px}
+  .who .name{color:#fff;font-weight:600}
+  .who .email{font-size:12px;color:#8395b5;word-break:break-all}
+  nav{padding:12px 12px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1}
+  nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+    background:transparent;border:none;color:#aeb9cf;padding:9px 12px;border-radius:8px;font-size:14px}
+  nav button:hover{background:#212c43;color:#fff}
+  nav button.active{background:var(--accent);color:#fff}
+  nav button .ic{width:18px;text-align:center;opacity:.9;font-size:15px}
+  .side-foot{padding:14px 16px;border-top:1px solid #2a3852}
+  .side-foot button{width:100%;background:#212c43;border-color:#2f3d5a;color:#c7d1e2}
+  .side-foot button:hover{background:#2a3852}
+
+  .main{padding:30px 34px 60px;max-width:1080px;width:100%}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+    margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .page-head h2{font-size:24px}
+  .page-head p{margin:4px 0 0;color:var(--muted);font-size:13.5px}
+
+  /* role pill */
+  .rolepill{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
+  .role-admin{background:var(--pend-soft);color:var(--admin)}
+  .role-professor{background:var(--accent-soft);color:var(--prof)}
+  .role-student{background:#e3f4f1;color:var(--student)}
+  .role-ta{background:#f0e9fb;color:var(--ta)}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+  /* cards / grids */
+  .grid{display:grid;gap:16px}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  .card.pad{padding:18px}
+  .stat{display:flex;flex-direction:column;gap:6px;padding:16px 18px}
+  .stat .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .stat .v{font-family:var(--serif);font-size:30px;color:var(--ink);line-height:1}
+  .stat .sub{font-size:12px;color:var(--muted)}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    box-shadow:var(--shadow);overflow:hidden;margin-bottom:22px}
+  .panel-head{padding:15px 18px;border-bottom:1px solid var(--line-2);display:flex;
+    align-items:center;justify-content:space-between;gap:12px}
+  .panel-head h3{font-size:16px}
+  .panel-body{padding:18px}
+  .panel-body.flush{padding:0}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  .tablewrap{overflow-x:auto}
+  th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+    font-weight:700;padding:11px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:12px 16px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#fafbfd}
+  .muted{color:var(--muted)}
+  .empty{padding:30px 18px;text-align:center;color:var(--muted);font-size:14px}
+  .code{font-family:var(--mono);font-weight:600;color:var(--ink);background:var(--line-2);
+    padding:2px 7px;border-radius:6px;font-size:13px}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+    padding:3px 9px;border-radius:999px}
+  .badge.ok{background:var(--ok-soft);color:var(--ok)}
+  .badge.pend{background:var(--pend-soft);color:var(--pend)}
+  .grade{font-family:var(--mono);font-weight:700;font-size:14px}
+
+  .formrow{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end}
+  .actions-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .hint{font-size:12.5px;color:var(--muted)}
+  .divider{height:1px;background:var(--line-2);margin:16px 0}
+  .pillbtns{display:flex;gap:8px;flex-wrap:wrap}
+  .segmented{display:inline-flex;background:var(--line-2);border-radius:9px;padding:3px}
+  .segmented button{border:none;background:transparent;color:var(--muted);padding:6px 12px;border-radius:7px;font-weight:600}
+  .segmented button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .list-tight li{margin:4px 0}
+
+  /* toast */
+  #toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:50;max-width:360px}
+  .toast{background:var(--ink);color:#fff;padding:12px 15px;border-radius:10px;font-size:13.5px;
+    box-shadow:0 12px 30px -10px rgba(0,0,0,.5);display:flex;gap:10px;align-items:flex-start;
+    animation:slidein .22s ease;border-left:3px solid var(--accent)}
+  .toast.ok{border-left-color:var(--ok)} .toast.warn{border-left-color:var(--pend)}
+  .toast.err{border-left-color:var(--danger)}
+  .toast .ti{font-weight:700;font-size:15px;line-height:1.2}
+  @keyframes slidein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  @media (max-width:780px){
+    .auth-card{grid-template-columns:1fr}
+    .auth-brand{order:2}
+    #app{grid-template-columns:1fr}
+    .sidebar{position:static;height:auto}
+    nav{flex-direction:row;overflow-x:auto;flex-wrap:nowrap}
+    nav button{white-space:nowrap}
+    .main{padding:22px 18px 50px}
+  }
+</style>
+
+<!-- ==================== AUTH ==================== -->
+<div id="auth">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="crest">S</div>
+      <div>
+        <h1>Student Portal</h1>
+        <p>Course registration, grades, complaints & feedback — one office for every role on campus.</p>
+      </div>
+      <div class="creds">
+        <div class="eyebrow">Demo accounts — click to fill</div>
+        <div class="cred"><span><b>Admin</b> · <span class="mono">admin@example.com</span></span>
+          <button data-fill="admin@example.com|adminpass">Use</button></div>
+        <div class="cred"><span><b>Professor</b> · <span class="mono">prof@example.com</span></span>
+          <button data-fill="prof@example.com|profpass">Use</button></div>
+        <div class="cred"><span><b>Student</b> · <span class="mono">student@example.com</span></span>
+          <button data-fill="student@example.com|studentpass">Use</button></div>
+        <div class="cred"><span><b>TA</b> · <span class="mono">ta@example.com</span></span>
+          <button data-fill="ta@example.com|tapass">Use</button></div>
+      </div>
+    </div>
+    <form class="auth-form" id="loginForm">
+      <div>
+        <div class="eyebrow">Sign in</div>
+        <h2>Welcome back</h2>
+      </div>
+      <label class="field">Email
+        <input id="email" type="email" autocomplete="username" placeholder="you@example.com" required></label>
+      <label class="field">Password
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required></label>
+      <div class="auth-err" id="authErr"></div>
+      <button class="primary" type="submit">Sign in →</button>
+      <div class="hint">Your session and all changes are saved locally in this browser. Use <b>Reset data</b> inside to restore the seed.</div>
+    </form>
+  </div>
+</div>
+
+<!-- ==================== APP ==================== -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="side-head">
+      <div class="crest">S</div>
+      <div><div class="t">Student Portal</div><div class="s">Registrar</div></div>
+    </div>
+    <div class="who">
+      <span id="rolePill" class="rolepill"></span>
+      <span class="name" id="whoName"></span>
+      <span class="email" id="whoEmail"></span>
+    </div>
+    <nav id="nav"></nav>
+    <div class="side-foot">
+      <button id="logoutBtn">Sign out</button>
+    </div>
+  </aside>
+  <main class="main" id="view"></main>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   STUDENT PORTAL — web port of the Java console project.
+   Logic bugs from the original are fixed here (see notes in chat):
+   - Single source of truth for the logged-in identity (no re-prompting IDs)
+   - Drop deadline tied to the active term, not a hardcoded past date
+   - Registration blocks duplicates & respects capacity + semester rule
+   - Marking a course complete moves it out of the registered list
+   - GPA computed from the shared gradebook
+   ============================================================ */
+const GRADE_PTS = {A:4,B:3,C:2,D:1,F:0};
+const STORE_KEY = "studentPortal.v1";
+
+function seed(){
+  return {
+    dropDeadline: "2026-12-15",
+    admin: { email:"admin@example.com", password:"adminpass" },
+    professors: [
+      { email:"prof@example.com", password:"profpass", name:"Dr. Smith", courses:["CS101","CS202","CS203","CS204"] }
+    ],
+    students: [
+      { id:1, email:"student@example.com", password:"studentpass", name:"Alex Rivera",
+        semester:1, registered:[], completed:[] }
+    ],
+    tas: [
+      { id:2, email:"ta@example.com", password:"tapass", name:"Jordan Kim",
+        semester:1, professorName:"Dr. Smith", registered:[], completed:[] }
+    ],
+    courses: [
+      c("CS101","Introduction to Computer Science","John Doe",3,"None","MWF 10:00–11:00",1,30),
+      c("CS202","Data Structures","Jane Smith",4,"CS101","TTh 2:00–3:30",2,30),
+      c("CS203","Operating Systems","Bob Johnson",3,"CS101","TTh 4:00–5:30",3,30),
+      c("CS204","Artificial Intelligence","Alice Lee",3,"CS101","TTh 6:00–7:30",4,30)
+    ],
+    complaints: [],
+    feedback: [],                 // shared feedback for professor
+    grades: {},                   // grades[studentId][courseCode] = "A"
+    complaintSeq: 1
+  };
+}
+function c(code,title,prof,cr,pre,sch,sem,cap){
+  return {code,title,professor:prof,credits:cr,prerequisites:pre,schedule:sch,
+    semester:sem,capacity:cap,enrolled:[]};
+}
+
+let db = load();
+let session = null; // {role, ref}
+function load(){ try{const s=localStorage.getItem(STORE_KEY); return s?JSON.parse(s):seed();}catch(e){return seed();} }
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+
+/* ---------- helpers ---------- */
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+function toast(msg,type="ok",title){
+  const t=document.createElement("div"); t.className="toast "+type;
+  t.innerHTML=(title?`<div><div class="ti">${esc(title)}</div>${esc(msg)}</div>`:esc(msg));
+  $("#toasts").appendChild(t);
+  setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>t.remove(),300);},3200);
+}
+function courseByCode(code){ return db.courses.find(x=>x.code===code); }
+function learnerById(id){ return db.students.find(s=>s.id===id) || db.tas.find(s=>s.id===id); }
+function allLearners(){ return [...db.students, ...db.tas]; }
+function gradesFor(id){ return db.grades[id] || {}; }
+function prereqMet(course, learner){
+  const pre=(course.prerequisites||"").trim();
+  if(!pre || pre.toLowerCase()==="none") return true;
+  // Support one or more comma/semicolon-separated prerequisite codes.
+  const reqs=pre.split(/[,;]+/).map(x=>x.trim().toUpperCase()).filter(Boolean);
+  return reqs.every(code=>learner.completed.includes(code));
+}
+function gpaFor(id){
+  const g=gradesFor(id); let pts=0,cr=0;
+  for(const [code,letter] of Object.entries(g)){
+    const co=courseByCode(code); if(!co) continue;
+    pts += (GRADE_PTS[letter]??0)*co.credits; cr += co.credits;
+  }
+  return cr? {gpa:(pts/cr), credits:cr} : {gpa:null, credits:0};
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+document.querySelectorAll("[data-fill]").forEach(b=>b.addEventListener("click",()=>{
+  const [e,p]=b.dataset.fill.split("|"); $("#email").value=e; $("#password").value=p; $("#authErr").textContent="";
+}));
+$("#loginForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const email=$("#email").value.trim(), pw=$("#password").value;
+  const found = authenticate(email,pw);
+  if(!found){ $("#authErr").textContent="Invalid email or password."; return; }
+  session=found; $("#authErr").textContent=""; $("#password").value="";
+  enterApp();
+});
+function authenticate(email,pw){
+  if(db.admin.email===email && db.admin.password===pw) return {role:"admin", ref:db.admin};
+  const p=db.professors.find(x=>x.email===email && x.password===pw); if(p) return {role:"professor", ref:p};
+  const s=db.students.find(x=>x.email===email && x.password===pw); if(s) return {role:"student", ref:s};
+  const t=db.tas.find(x=>x.email===email && x.password===pw); if(t) return {role:"ta", ref:t};
+  return null;
+}
+$("#logoutBtn").addEventListener("click",()=>{
+  session=null; $("#app").style.display="none"; $("#auth").style.display="grid"; $("#email").focus();
+});
+
+/* ============================================================
+   NAV per role
+   ============================================================ */
+const NAV = {
+  admin:[
+    ["overview","◆","Overview"],["courses","▤","Course Catalog"],
+    ["professors","✚","Professors"],["students","☰","Students"],
+    ["complaints","!","Complaints"]
+  ],
+  professor:[
+    ["overview","◆","Overview"],["assigned","▤","My Courses"],
+    ["gradebook","✎","Gradebook"],["progress","↗","Student Progress"],
+    ["feedback","✦","Feedback"]
+  ],
+  student:[
+    ["overview","◆","Overview"],["catalog","▤","Available Courses"],
+    ["myschedule","◷","My Schedule"],["mygrades","✎","Grades & Progress"],
+    ["complaint","!","Submit Complaint"],["feedbackform","✦","Give Feedback"]
+  ],
+  ta:[
+    ["overview","◆","Overview"],["catalog","▤","Available Courses"],
+    ["myschedule","◷","My Schedule"],["assist","✚","Assist Professor"],
+    ["lookup","↗","Student Records"]
+  ]
+};
+const ROLE_LABEL={admin:"Administrator",professor:"Professor",student:"Student",ta:"Teaching Assistant"};
+
+let currentView="overview";
+function enterApp(){
+  $("#auth").style.display="none"; $("#app").style.display="grid";
+  const r=session.role, ref=session.ref;
+  $("#rolePill").className="rolepill role-"+r;
+  $("#rolePill").innerHTML=`<span class="dot"></span>${ROLE_LABEL[r]}`;
+  $("#whoName").textContent = ref.name || "Administrator";
+  $("#whoEmail").textContent = ref.email;
+  const nav=$("#nav"); nav.innerHTML="";
+  NAV[r].forEach(([key,ic,label])=>{
+    const b=document.createElement("button");
+    b.innerHTML=`<span class="ic">${ic}</span>${label}`;
+    b.onclick=()=>{ currentView=key; renderNav(); render(); };
+    b.dataset.key=key; nav.appendChild(b);
+  });
+  currentView="overview"; renderNav(); render();
+}
+function renderNav(){
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.key===currentView));
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function head(title,sub,extra=""){
+  return `<div class="page-head"><div><h2>${esc(title)}</h2>${sub?`<p>${esc(sub)}</p>`:""}</div><div class="actions-row">${extra}</div></div>`;
+}
+function render(){
+  const v=$("#view");
+  const fn = ({
+    admin:{overview:adminOverview,courses:adminCourses,professors:adminProfessors,students:adminStudents,complaints:adminComplaints},
+    professor:{overview:profOverview,assigned:profAssigned,gradebook:profGradebook,progress:profProgress,feedback:profFeedback},
+    student:{overview:learnerOverview,catalog:learnerCatalog,myschedule:learnerSchedule,mygrades:learnerGrades,complaint:learnerComplaint,feedbackform:learnerFeedback},
+    ta:{overview:learnerOverview,catalog:learnerCatalog,myschedule:learnerSchedule,assist:taAssist,lookup:taLookup}
+  })[session.role][currentView];
+  v.innerHTML = fn ? fn() : "<p>Not found.</p>";
+  if(fn && fn._after) fn._after();
+  bindActions();
+}
+
+/* ---------- generic action binding via data-act ---------- */
+const ACTIONS={};
+function bindActions(){
+  document.querySelectorAll("[data-act]").forEach(el=>{
+    el.onclick=()=>{ const f=ACTIONS[el.dataset.act]; if(f) f(el); };
+  });
+  document.querySelectorAll("form[data-form]").forEach(f=>{
+    f.onsubmit=e=>{ e.preventDefault(); const fn=ACTIONS[f.dataset.form]; if(fn) fn(f); };
+  });
+}
+function afterMutate(){ save(); render(); }
+
+/* ============================================================
+   ADMIN
+   ============================================================ */
+function adminOverview(){
+  const stud=allLearners().length, pend=db.complaints.filter(c=>c.status==="Pending").length;
+  return head("Administrator dashboard","Manage the catalog, faculty, enrollment and complaints.",
+    `<button class="danger" data-act="reset">Reset data</button>`)+
+  `<div class="grid cards" style="margin-bottom:22px">
+    ${stat("Courses",db.courses.length,"in catalog")}
+    ${stat("Professors",db.professors.length,"on faculty")}
+    ${stat("Learners",stud,"students + TAs")}
+    ${stat("Open complaints",pend,pend?"need attention":"all clear")}
+  </div>
+  <div class="panel"><div class="panel-head"><h3>Recent complaints</h3>
+    <button data-act="goComplaints" class="ghost">View all →</button></div>
+    <div class="panel-body flush"><div class="tablewrap">${complaintsTable(db.complaints.slice(-5).reverse())}</div></div></div>`;
+}
+ACTIONS.goComplaints=()=>{currentView="complaints";renderNav();render();};
+ACTIONS.reset=()=>{ if(confirm("Restore all seed data? This clears your changes.")){ db=seed(); save(); toast("Portal reset to seed data.","warn"); render(); } };
+
+function adminCourses(){
+  return head("Course catalog","Add, inspect and remove courses offered this year.")+
+  `<div class="panel"><div class="panel-head"><h3>Add a course</h3></div><div class="panel-body">
+    <form data-form="addCourse"><div class="formrow">
+      <label class="field">Code<input name="code" placeholder="CS305" required></label>
+      <label class="field">Title<input name="title" placeholder="Databases" required></label>
+      <label class="field">Professor<input name="professor" placeholder="Dr. Who" required></label>
+      <label class="field">Credits<input name="credits" type="number" min="1" max="6" value="3" required></label>
+      <label class="field">Prerequisites<input name="prerequisites" placeholder="CS101"></label>
+      <label class="field">Schedule<input name="schedule" placeholder="MWF 1:00–2:00" required></label>
+      <label class="field">Semester<input name="semester" type="number" min="1" max="8" value="1" required></label>
+      <label class="field">Capacity<input name="capacity" type="number" min="1" value="30" required></label>
+    </div><div class="divider"></div><button class="primary" type="submit">Add course</button></div></form></div>
+  <div class="panel"><div class="panel-head"><h3>Catalog</h3><span class="hint">${db.courses.length} courses</span></div>
+    <div class="panel-body flush"><div class="tablewrap">${courseTable(db.courses,true)}</div></div></div>`;
+}
+ACTIONS.addCourse=f=>{
+  const d=Object.fromEntries(new FormData(f)); const code=d.code.trim().toUpperCase();
+  if(!code) return;
+  if(courseByCode(code)) return toast(`Course ${code} already exists.`,"err","Duplicate");
+  db.courses.push(c(code,d.title.trim(),d.professor.trim(),+d.credits,d.prerequisites.trim()||"None",
+    d.schedule.trim(),+d.semester,+d.capacity));
+  toast(`Course ${code} added.`,"ok"); afterMutate();
+};
+ACTIONS.removeCourse=el=>{
+  const code=el.dataset.code;
+  db.courses=db.courses.filter(x=>x.code!==code);
+  db.professors.forEach(p=>p.courses=p.courses.filter(x=>x!==code));
+  toast(`Course ${code} removed.`,"warn"); afterMutate();
+};
+
+function adminProfessors(){
+  return head("Professors","Manage faculty and course assignments.")+
+  `<div class="panel"><div class="panel-head"><h3>Add a professor</h3></div><div class="panel-body">
+    <form data-form="addProf"><div class="formrow">
+      <label class="field">Name<input name="name" placeholder="Dr. Ada Lovelace" required></label>
+      <label class="field">Email<input name="email" type="email" placeholder="ada@example.com" required></label>
+      <label class="field">Password<input name="password" placeholder="secret" required></label>
+    </div><div class="divider"></div><button class="primary" type="submit">Add professor</button></div></form></div>
+  <div class="panel"><div class="panel-head"><h3>Faculty</h3></div><div class="panel-body flush"><div class="tablewrap">
+    <table><thead><tr><th>Name</th><th>Email</th><th>Assigned courses</th><th></th></tr></thead><tbody>
+    ${db.professors.length?db.professors.map(p=>`<tr>
+      <td><b>${esc(p.name)}</b></td><td class="muted">${esc(p.email)}</td>
+      <td>${p.courses.length?p.courses.map(c=>`<span class="code">${esc(c)}</span>`).join(" "):'<span class="muted">none</span>'}</td>
+      <td class="actions-row" style="justify-content:flex-end">
+        <button class="ghost" data-act="renameProf" data-email="${esc(p.email)}">Rename</button>
+        <button class="ghost" data-act="assignProf" data-email="${esc(p.email)}">Assign course</button>
+        <button class="danger" data-act="removeProf" data-email="${esc(p.email)}">Remove</button></td></tr>`).join(""):
+      `<tr><td colspan="4" class="empty">No professors.</td></tr>`}
+    </tbody></table></div></div></div>`;
+}
+ACTIONS.addProf=f=>{
+  const d=Object.fromEntries(new FormData(f));
+  if(db.professors.some(p=>p.email===d.email.trim())) return toast("A professor with that email exists.","err");
+  db.professors.push({name:d.name.trim(),email:d.email.trim(),password:d.password,courses:[]});
+  toast(`Professor ${d.name} added.`,"ok"); afterMutate();
+};
+ACTIONS.removeProf=el=>{ db.professors=db.professors.filter(p=>p.email!==el.dataset.email); toast("Professor removed.","warn"); afterMutate(); };
+ACTIONS.renameProf=el=>{
+  const p=db.professors.find(x=>x.email===el.dataset.email); const n=prompt("New name for "+p.name+":",p.name);
+  if(n&&n.trim()){ p.name=n.trim(); toast("Name updated.","ok"); afterMutate(); }
+};
+ACTIONS.assignProf=el=>{
+  const p=db.professors.find(x=>x.email===el.dataset.email);
+  const code=prompt("Course code to assign to "+p.name+":");
+  if(!code) return; const cc=code.trim().toUpperCase();
+  if(!courseByCode(cc)) return toast(`Course ${cc} not found.`,"err");
+  if(p.courses.includes(cc)) return toast("Already assigned.","warn");
+  p.courses.push(cc); toast(`${cc} assigned to ${p.name}.`,"ok"); afterMutate();
+};
+
+function adminStudents(){
+  return head("Students & TAs","Enrollment roster.")+
+  `<div class="panel"><div class="panel-head"><h3>Add a student</h3></div><div class="panel-body">
+    <form data-form="addStudent"><div class="formrow">
+      <label class="field">Name<input name="name" placeholder="Sam Lee" required></label>
+      <label class="field">Email<input name="email" type="email" required></label>
+      <label class="field">Password<input name="password" required></label>
+      <label class="field">Student ID<input name="id" type="number" min="1" required></label>
+      <label class="field">Semester<input name="semester" type="number" min="1" max="8" value="1" required></label>
+    </div><div class="divider"></div><button class="primary" type="submit">Add student</button></div></form></div>
+  <div class="panel"><div class="panel-head"><h3>Roster</h3></div><div class="panel-body flush"><div class="tablewrap">
+    <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Sem</th><th>GPA</th><th></th></tr></thead><tbody>
+    ${allLearners().map(s=>{const g=gpaFor(s.id);const isTA=db.tas.includes(s);return `<tr>
+      <td class="mono">${s.id}</td><td><b>${esc(s.name)}</b></td><td class="muted">${esc(s.email)}</td>
+      <td>${isTA?'<span class="rolepill role-ta"><span class="dot"></span>TA</span>':'<span class="rolepill role-student"><span class="dot"></span>Student</span>'}</td>
+      <td class="mono">${s.semester}</td><td class="mono">${g.gpa!=null?g.gpa.toFixed(2):"—"}</td>
+      <td style="text-align:right">${isTA?'<span class="muted hint">—</span>':`<button class="danger" data-act="removeStudent" data-id="${s.id}">Remove</button>`}</td></tr>`;}).join("")}
+    </tbody></table></div></div></div>`;
+}
+ACTIONS.addStudent=f=>{
+  const d=Object.fromEntries(new FormData(f)); const id=+d.id;
+  if(learnerById(id)) return toast(`Student ID ${id} already exists.`,"err");
+  if(db.students.some(s=>s.email===d.email.trim())||db.tas.some(s=>s.email===d.email.trim()))
+    return toast("That email is taken.","err");
+  db.students.push({id,email:d.email.trim(),password:d.password,name:d.name.trim(),
+    semester:+d.semester,registered:[],completed:[]});
+  toast(`Student ${d.name} (ID ${id}) added.`,"ok"); afterMutate();
+};
+ACTIONS.removeStudent=el=>{ const id=+el.dataset.id; db.students=db.students.filter(s=>s.id!==id);
+  toast(`Student ID ${id} removed.`,"warn"); afterMutate(); };
+
+function adminComplaints(){
+  return head("Complaints","Review and resolve student complaints.")+
+  `<div class="panel"><div class="panel-body flush"><div class="tablewrap">${complaintsTable(db.complaints.slice().reverse(),true)}</div></div></div>`;
+}
+ACTIONS.resolveComplaint=el=>{
+  const id=+el.dataset.id; const c=db.complaints.find(x=>x.id===id);
+  if(c){ c.status="Resolved"; toast(`Complaint #${id} resolved.`,"ok"); afterMutate(); }
+};
+
+/* ============================================================
+   PROFESSOR
+   ============================================================ */
+function profCourses(){ return db.courses.filter(c=>session.ref.courses.includes(c.code)); }
+// Courses a professor may grade for a given learner: the ones the learner has
+// actually registered for or completed, limited to courses this professor teaches.
+function studentGradeableCourses(learner){
+  const teaches=new Set(session.ref.courses);
+  const codes=[...new Set([...(learner.registered||[]), ...(learner.completed||[])])];
+  return codes.filter(c=>teaches.has(c)).map(courseByCode).filter(Boolean);
+}
+let gbSelectedStudent=null;
+function profOverview(){
+  const courses=profCourses();
+  const graded=Object.keys(db.grades).length;
+  return head("Professor dashboard",`Welcome, ${session.ref.name}.`)+
+  `<div class="grid cards" style="margin-bottom:22px">
+    ${stat("Assigned courses",courses.length,"this term")}
+    ${stat("Students graded",graded,"in your gradebook")}
+    ${stat("Feedback received",db.feedback.length,"ratings")}
+  </div>
+  <div class="panel"><div class="panel-head"><h3>My courses</h3></div>
+    <div class="panel-body flush"><div class="tablewrap">${courseTable(courses,false)}</div></div></div>`;
+}
+function profAssigned(){
+  const courses=profCourses();
+  return head("My courses","Courses assigned to you.")+
+  `<div class="panel"><div class="panel-body flush"><div class="tablewrap">${courseTable(courses,false)}</div></div></div>`;
+}
+function profGradebook(){
+  const opts=allLearners().map(s=>`<option value="${s.id}">${esc(s.name)} · ID ${s.id}</option>`).join("");
+  return head("Gradebook","Set grades and mark courses complete. You can only grade a student's own registered courses.")+
+  `<div class="panel"><div class="panel-head"><h3>Record a grade</h3></div><div class="panel-body">
+    <form data-form="setGrade"><div class="formrow">
+      <label class="field">Student<select name="id" id="gbStudent" required>${opts}</select></label>
+      <label class="field">Course<select name="code" id="gbCourse" required></select></label>
+      <label class="field">Grade<select name="grade" required><option>A</option><option>B</option><option>C</option><option>D</option><option>F</option></select></label>
+    </div><div class="divider"></div><div class="actions-row">
+      <button class="primary" type="submit">Save grade</button>
+      <button type="button" data-act="markComplete">Mark course complete for student</button>
+    </div><p class="hint" id="gbHint" style="margin:10px 0 0"></p>
+    </div></form></div>
+  ${allLearners().map(s=>gradebookCard(s)).join("")}`;
+}
+profGradebook._after=()=>{
+  const sel=$("#gbStudent"); if(!sel) return;
+  if(gbSelectedStudent && learnerById(gbSelectedStudent)) sel.value=gbSelectedStudent;
+  const fill=()=>{
+    gbSelectedStudent=+sel.value;
+    const s=learnerById(gbSelectedStudent);
+    const courses=studentGradeableCourses(s);
+    const cs=$("#gbCourse"), hint=$("#gbHint");
+    if(courses.length){
+      cs.disabled=false;
+      cs.innerHTML=courses.map(c=>`<option value="${c.code}">${c.code} — ${esc(c.title)}${s.completed.includes(c.code)?" (completed)":""}</option>`).join("");
+      hint.textContent="“Mark complete” moves the course to the student’s transcript.";
+    } else {
+      cs.disabled=true;
+      cs.innerHTML=`<option value="">— no registered courses —</option>`;
+      hint.textContent=`${s.name} hasn’t registered for any of your courses yet.`;
+    }
+  };
+  sel.onchange=fill; fill();
+};
+function gradebookCard(s){
+  const g=gradesFor(s.id); const entries=Object.entries(g);
+  if(!entries.length && !s.completed.length) return "";
+  return `<div class="panel"><div class="panel-head"><h3>${esc(s.name)} <span class="muted mono" style="font-size:13px">· ID ${s.id}</span></h3>
+    ${gpaBadge(s.id)}</div><div class="panel-body flush"><div class="tablewrap">
+    <table><thead><tr><th>Course</th><th>Grade</th><th>Status</th></tr></thead><tbody>
+    ${entries.length?entries.map(([code,gr])=>{const co=courseByCode(code);return `<tr>
+      <td><span class="code">${esc(code)}</span> ${co?esc(co.title):""}</td>
+      <td><span class="grade">${esc(gr)}</span></td>
+      <td>${s.completed.includes(code)?'<span class="badge ok">Completed</span>':'<span class="badge pend">In progress</span>'}</td></tr>`;}).join(""):
+      `<tr><td colspan="3" class="empty">No grades recorded.</td></tr>`}
+    </tbody></table></div></div></div>`;
+}
+ACTIONS.setGrade=f=>{
+  const d=Object.fromEntries(new FormData(f)); const id=+d.id;
+  if(!d.code) return toast("This student hasn’t registered for any of your courses.","err","Nothing to grade");
+  (db.grades[id]=db.grades[id]||{})[d.code]=d.grade;
+  toast(`Grade ${d.grade} set for ID ${id} in ${d.code}.`,"ok"); save(); render();
+};
+ACTIONS.markComplete=()=>{
+  const f=document.querySelector('form[data-form="setGrade"]');
+  const id=+f.id.value, code=f.code.value; const s=learnerById(id);
+  if(!s) return;
+  if(!code) return toast("This student hasn’t registered for any of your courses.","err","Nothing to complete");
+  if(!s.completed.includes(code)) s.completed.push(code);
+  s.registered=s.registered.filter(x=>x!==code);
+  const co=courseByCode(code); if(co) co.enrolled=co.enrolled.filter(x=>x!==id);
+  toast(`${code} marked complete for ${s.name}.`,"ok"); save(); render();
+};
+function profProgress(){
+  const opts=allLearners().map(s=>`<option value="${s.id}">${esc(s.name)} · ID ${s.id}</option>`).join("");
+  return head("Student progress","Track a student's grades, completed courses and GPA.")+
+  `<div class="panel"><div class="panel-body"><label class="field" style="max-width:340px">Select student
+    <select id="progSel">${opts}</select></label></div></div>
+  <div id="progOut"></div>`;
+}
+profProgress._after=()=>{
+  const sel=$("#progSel"); if(!sel) return;
+  const draw=()=>{ $("#progOut").innerHTML=progressReport(+sel.value); };
+  sel.onchange=draw; draw();
+};
+function progressReport(id){
+  const s=learnerById(id); const g=gradesFor(id); const {gpa,credits}=gpaFor(id);
+  const rows=Object.entries(g).map(([code,gr])=>{const co=courseByCode(code);return `<tr>
+    <td><span class="code">${esc(code)}</span></td><td>${co?esc(co.title):"—"}</td>
+    <td class="mono">${co?co.credits:"—"}</td><td><span class="grade">${esc(gr)}</span></td>
+    <td>${s.completed.includes(code)?'<span class="badge ok">Completed</span>':'<span class="badge pend">In progress</span>'}</td></tr>`;}).join("");
+  return `<div class="grid cards" style="margin-bottom:22px">
+    ${stat("Cumulative GPA",gpa!=null?gpa.toFixed(2):"—",gpa!=null?"on a 4.0 scale":"no grades yet")}
+    ${stat("Graded credits",credits,"counted")}
+    ${stat("Completed",s.completed.length,"courses")}
+    ${stat("Registered",s.registered.length,"this term")}
+  </div>
+  <div class="panel"><div class="panel-head"><h3>Grade detail — ${esc(s.name)}</h3></div>
+    <div class="panel-body flush"><div class="tablewrap"><table>
+    <thead><tr><th>Code</th><th>Course</th><th>Credits</th><th>Grade</th><th>Status</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="5" class="empty">No grades on record.</td></tr>'}</tbody></table></div></div></div>`;
+}
+function profFeedback(){
+  const fb=db.feedback;
+  const avg=fb.length?(fb.reduce((a,b)=>a+b.rating,0)/fb.length):null;
+  return head("Feedback","Anonymous ratings and comments from students.")+
+  `<div class="grid cards" style="margin-bottom:22px">
+    ${stat("Average rating",avg!=null?avg.toFixed(1)+" / 5":"—",fb.length+" responses")}
+    ${stat("Responses",fb.length,"total")}
+  </div>
+  <div class="panel"><div class="panel-body flush"><div class="tablewrap"><table>
+  <thead><tr><th>Rating</th><th>Comment</th></tr></thead><tbody>
+  ${fb.length?fb.slice().reverse().map(f=>`<tr><td><span class="grade">${"★".repeat(f.rating)}</span><span class="muted">${"★".repeat(5-f.rating)}</span></td>
+    <td>${esc(f.text)||'<span class="muted">—</span>'}</td></tr>`).join(""):
+    `<tr><td colspan="2" class="empty">No feedback yet.</td></tr>`}
+  </tbody></table></div></div></div>`;
+}
+
+/* ============================================================
+   STUDENT / TA (learner)
+   ============================================================ */
+function activeTerm(){ return session.ref.semester; }
+function learnerOverview(){
+  const s=session.ref; const {gpa}=gpaFor(s.id);
+  const eligible=db.courses.filter(c=>!s.registered.includes(c.code) && !s.completed.includes(c.code) && c.enrolled.length<c.capacity && prereqMet(c,s)).length;
+  return head(`Hello, ${s.name.split(" ")[0]}`,`Semester ${s.semester} · Student ID ${s.id}`,
+    session.role==="ta"?`<span class="rolepill role-ta"><span class="dot"></span>Teaching Assistant</span>`:"")+
+  `<div class="grid cards" style="margin-bottom:22px">
+    ${stat("Registered",s.registered.length,"courses this term")}
+    ${stat("Completed",s.completed.length,"courses")}
+    ${stat("GPA",gpa!=null?gpa.toFixed(2):"—",gpa!=null?"cumulative":"no grades yet")}
+    ${stat("Open to you",eligible,"registrable now")}
+  </div>
+  <div class="panel"><div class="panel-head"><h3>My schedule</h3>
+    <button class="ghost" data-act="goCatalog">Register for courses →</button></div>
+    <div class="panel-body flush"><div class="tablewrap">${scheduleTable(s)}</div></div></div>`;
+}
+ACTIONS.goCatalog=()=>{currentView="catalog";renderNav();render();};
+
+function learnerCatalog(){
+  const s=session.ref;
+  return head("Available courses",`A locked course unlocks once its prerequisite is completed. Deadline to drop: ${db.dropDeadline}.`)+
+  `<div class="panel"><div class="panel-body flush"><div class="tablewrap"><table>
+  <thead><tr><th>Code</th><th>Title</th><th>Professor</th><th>Cr</th><th>Prereq</th><th>Schedule</th><th>Sem</th><th>Seats</th><th></th></tr></thead>
+  <tbody>${db.courses.map(c=>{
+    const reg=s.registered.includes(c.code), done=s.completed.includes(c.code);
+    const full=c.enrolled.length>=c.capacity;
+    const preOk=prereqMet(c,s);
+    let action;
+    if(done) action='<span class="badge ok">Completed</span>';
+    else if(reg) action=`<button class="danger" data-act="drop" data-code="${c.code}">Drop</button>`;
+    else if(!preOk) action=`<span class="badge pend" title="Complete ${esc(c.prerequisites)} first">🔒 Needs ${esc(c.prerequisites)}</span>`;
+    else if(full) action='<span class="badge pend">Full</span>';
+    else action=`<button class="primary" data-act="register" data-code="${c.code}">Register</button>`;
+    return `<tr><td><span class="code">${esc(c.code)}</span></td><td><b>${esc(c.title)}</b></td>
+      <td class="muted">${esc(c.professor)}</td><td class="mono">${c.credits}</td>
+      <td class="mono muted">${esc(c.prerequisites)}</td><td class="muted">${esc(c.schedule)}</td>
+      <td class="mono">${c.semester}</td><td class="mono">${c.enrolled.length}/${c.capacity}</td>
+      <td style="text-align:right">${action}</td></tr>`;
+  }).join("")}</tbody></table></div></div></div>`;
+}
+ACTIONS.register=el=>{
+  const s=session.ref, code=el.dataset.code, co=courseByCode(code);
+  if(!co) return;
+  if(s.registered.includes(code)) return toast("Already registered.","warn");
+  if(s.completed.includes(code)) return toast("You've already completed this course.","warn");
+  if(!prereqMet(co,s)) return toast(`Complete ${co.prerequisites} first to unlock ${co.title}.`,"err","Prerequisite required");
+  if(co.enrolled.length>=co.capacity) return toast(`${co.title} is full.`,"err");
+  co.enrolled.push(s.id); s.registered.push(code);
+  toast(`Registered for ${co.title}.`,"ok"); save(); render();
+};
+ACTIONS.drop=el=>{
+  const s=session.ref, code=el.dataset.code, co=courseByCode(code);
+  if(new Date() > new Date(db.dropDeadline+"T23:59:59"))
+    return toast(`The drop deadline (${db.dropDeadline}) has passed.`,"err","Cannot drop");
+  s.registered=s.registered.filter(x=>x!==code);
+  if(co) co.enrolled=co.enrolled.filter(x=>x!==s.id);
+  toast(`Dropped ${co?co.title:code}.`,"warn"); save(); render();
+};
+
+function learnerSchedule(){
+  const s=session.ref;
+  return head("My schedule",`Registered courses for semester ${s.semester}.`)+
+  `<div class="panel"><div class="panel-body flush"><div class="tablewrap">${scheduleTable(s)}</div></div></div>`;
+}
+function scheduleTable(s){
+  if(!s.registered.length) return `<div class="empty">No courses registered yet. Head to <b>Available Courses</b> to enroll.</div>`;
+  return `<table><thead><tr><th>Code</th><th>Course</th><th>Professor</th><th>Schedule</th><th>Credits</th></tr></thead><tbody>
+  ${s.registered.map(code=>{const c=courseByCode(code);if(!c)return"";return `<tr>
+    <td><span class="code">${esc(c.code)}</span></td><td><b>${esc(c.title)}</b></td>
+    <td class="muted">${esc(c.professor)}</td><td class="muted">${esc(c.schedule)}</td>
+    <td class="mono">${c.credits}</td></tr>`;}).join("")}</tbody></table>`;
+}
+function learnerGrades(){
+  const s=session.ref;
+  return head("Grades & progress","Your transcript, as recorded by your professors.")+
+  progressReport(s.id);
+}
+function learnerComplaint(){
+  return head("Submit a complaint","Send an issue to the administration. You'll get a tracking ID.")+
+  `<div class="panel"><div class="panel-body"><form data-form="submitComplaint">
+    <label class="field">Describe the issue
+      <textarea name="desc" rows="4" style="font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;width:100%;resize:vertical" placeholder="e.g. I was charged for a course I dropped before the deadline." required></textarea></label>
+    <div class="divider"></div><button class="primary" type="submit">Submit complaint</button></form></div></div>
+  <div class="panel"><div class="panel-head"><h3>My complaints</h3></div>
+    <div class="panel-body flush"><div class="tablewrap">${complaintsTable(db.complaints.filter(c=>c.studentId===session.ref.id).reverse())}</div></div></div>`;
+}
+ACTIONS.submitComplaint=f=>{
+  const desc=new FormData(f).get("desc").trim(); if(!desc) return;
+  const id=db.complaintSeq++;
+  db.complaints.push({id,studentId:session.ref.id,description:desc,status:"Pending"});
+  toast(`Complaint submitted — tracking ID #${id}.`,"ok"); save(); render();
+};
+function learnerFeedback(){
+  return head("Give feedback","Rate your professor. Feedback is anonymous.")+
+  `<div class="panel"><div class="panel-body"><form data-form="submitFeedback">
+    <label class="field">Rating<select name="rating" required><option value="5">★★★★★ — Excellent</option>
+      <option value="4">★★★★ — Good</option><option value="3">★★★ — Average</option>
+      <option value="2">★★ — Poor</option><option value="1">★ — Very poor</option></select></label>
+    <div style="height:12px"></div>
+    <label class="field">Comment
+      <textarea name="text" rows="3" style="font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;width:100%;resize:vertical" placeholder="What went well or could improve?"></textarea></label>
+    <div class="divider"></div><button class="primary" type="submit">Submit feedback</button></form></div></div>`;
+}
+ACTIONS.submitFeedback=f=>{
+  const d=Object.fromEntries(new FormData(f));
+  db.feedback.push({rating:+d.rating,text:(d.text||"").trim()});
+  toast("Feedback submitted. Thank you!","ok"); save(); render();
+};
+
+/* ---------- TA-only ---------- */
+function taAssist(){
+  const prof=db.professors.find(p=>p.name===session.ref.professorName)||db.professors[0];
+  return head("Assist professor",`You support ${prof?prof.name:"your professor"}.`)+
+  `<div class="panel"><div class="panel-body">
+    <p>As a TA you can look up any student's grades and completed courses to help ${prof?esc(prof.name):"the professor"} track the class.</p>
+    <div class="actions-row"><button class="primary" data-act="goLookup">Open student records →</button></div>
+    <div class="divider"></div>
+    <div class="grid cards">
+      ${stat("Supporting",prof?prof.name:"—","professor")}
+      ${stat("Courses",prof?prof.courses.length:0,"in their load")}
+    </div></div></div>`;
+}
+ACTIONS.goLookup=()=>{currentView="lookup";renderNav();render();};
+function taLookup(){
+  const opts=allLearners().filter(s=>s.id!==session.ref.id).map(s=>`<option value="${s.id}">${esc(s.name)} · ID ${s.id}</option>`).join("");
+  return head("Student records","Look up grades, completed courses and GPA for any student.")+
+  `<div class="panel"><div class="panel-body"><label class="field" style="max-width:340px">Select student
+    <select id="progSel">${opts}</select></label></div></div><div id="progOut"></div>`;
+}
+taLookup._after=()=>{ const sel=$("#progSel"); if(!sel)return;
+  const draw=()=>$("#progOut").innerHTML=progressReport(+sel.value); sel.onchange=draw; draw(); };
+
+/* ============================================================
+   SHARED TABLE / WIDGET BUILDERS
+   ============================================================ */
+function stat(k,v,sub){ return `<div class="card stat"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span><span class="sub">${esc(sub||"")}</span></div>`; }
+function gpaBadge(id){ const {gpa}=gpaFor(id); return gpa!=null?`<span class="badge ok">GPA ${gpa.toFixed(2)}</span>`:`<span class="badge pend">No GPA</span>`; }
+function courseTable(list,admin){
+  if(!list.length) return `<div class="empty">No courses.</div>`;
+  return `<table><thead><tr><th>Code</th><th>Title</th><th>Professor</th><th>Cr</th><th>Prereq</th><th>Schedule</th><th>Sem</th><th>Enrolled</th>${admin?"<th></th>":""}</tr></thead><tbody>
+  ${list.map(c=>`<tr><td><span class="code">${esc(c.code)}</span></td><td><b>${esc(c.title)}</b></td>
+    <td class="muted">${esc(c.professor)}</td><td class="mono">${c.credits}</td>
+    <td class="mono muted">${esc(c.prerequisites)}</td><td class="muted">${esc(c.schedule)}</td>
+    <td class="mono">${c.semester}</td><td class="mono">${c.enrolled.length}/${c.capacity}</td>
+    ${admin?`<td style="text-align:right"><button class="danger" data-act="removeCourse" data-code="${c.code}">Remove</button></td>`:""}</tr>`).join("")}
+  </tbody></table>`;
+}
+function complaintsTable(list,admin){
+  if(!list.length) return `<div class="empty">No complaints.</div>`;
+  return `<table><thead><tr><th>ID</th><th>Student</th><th>Description</th><th>Status</th>${admin?"<th></th>":""}</tr></thead><tbody>
+  ${list.map(c=>{const s=learnerById(c.studentId);return `<tr>
+    <td class="mono">#${c.id}</td><td>${s?esc(s.name):"ID "+c.studentId}<span class="muted mono"> · ${c.studentId}</span></td>
+    <td>${esc(c.description)}</td>
+    <td>${c.status==="Resolved"?'<span class="badge ok">Resolved</span>':'<span class="badge pend">Pending</span>'}</td>
+    ${admin?`<td style="text-align:right">${c.status==="Pending"?`<button class="primary" data-act="resolveComplaint" data-id="${c.id}">Resolve</button>`:'<span class="muted hint">—</span>'}</td>`:""}</tr>`;}).join("")}
+  </tbody></table>`;
+}
+
+/* ---------- boot ---------- */
+$("#email").focus();
+</script>
+</body>
+</html>
